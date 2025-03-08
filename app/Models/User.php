@@ -7,10 +7,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasUuids;
+
+    protected $keyType = 'string'; // Định dạng string thay vì integer
+    public $incrementing = false;  // Không dùng auto-increment
 
     /**
      * The attributes that are mass assignable.
@@ -18,7 +23,7 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
+        // 'name',
         'email',
         'password',
     ];
@@ -39,7 +44,23 @@ class User extends Authenticatable
      * @var array<string, string>
      */
     protected $casts = [
-        'email_verified_at' => 'datetime',
+        // 'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->id)) { // Nếu chưa có id, tạo UUID mới
+                $model->id = (string) Str::uuid();
+            }
+        });
+    }
+
+    public function decks()
+    {
+        return $this->hasMany(Deck::class, 'userId');
+    }
 }
