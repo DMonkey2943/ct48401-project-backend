@@ -35,6 +35,7 @@ class AuthController extends Controller
             ]);
 
             return response()->json([
+                'user' => $user,
                 'message' => 'Đăng ký tài khoản thành công.'
             ], 201);
         } catch (Exception $e) {
