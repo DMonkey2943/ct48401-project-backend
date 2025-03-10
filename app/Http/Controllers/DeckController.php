@@ -1,0 +1,141 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Deck;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Exception;
+use Illuminate\Auth\Access\AuthorizationException;
+
+class DeckController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            // Kiểm tra trường filteredByUser, nếu không có thì mặc định là false
+            $filteredByUser = $request->has('filteredByUser') ? (bool)$request->filteredByUser : false;
+
+            if ($filteredByUser == true) {
+                // Trường hợp 1: Chỉ lấy các bộ thẻ của user
+                $decks = $user->decks;
+            } else {
+                // Trường hợp 2: Lấy các bộ thẻ của user và các bộ thẻ có isSuperUser là true
+                $decks = Deck::where(function ($query) use ($user) {
+                    $query->where('userId', $user->id)
+                        ->orWhere('isSuperUser', true);
+                })->get();
+            }
+
+            return response()->json([
+                'message' => 'Truy xuất danh sách bộ thẻ thành công',
+                'decks' => $decks
+            ]);
+        } catch (Exception $e) {
+            Log::error('Lỗi truy xuất danh sách bộ thẻ: ' . $e->getMessage() . ' - Line no. ' . $e->getLine());
+            return response()->json([
+                'message' => 'Lỗi truy xuất danh sách bộ thẻ: ' . $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        try {
+            $deck = $request->user()->decks()->create([
+                'title' => $request->title,
+                'type' => $request->type ?? null,
+                'imageBg' => $request->imageBg ?? null,
+                'isFavorite' => $request->isFavorite ?? false,
+                'isSuperUser' => $request->isSuperUser ?? false,
+            ]);
+
+            return response()->json([
+                'message' => 'Tạo mới bộ thẻ thành công',
+                'deck' => $deck
+            ], 201);
+        } catch (Exception $e) {
+            Log::error('Lỗi tạo mới bộ thẻ: ' . $e->getMessage() . ' - Line no. ' . $e->getLine());
+            return response()->json([
+                'message' => 'Lỗi tạo mới bộ thẻ: ' . $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show($id)
+    {
+        try {
+            $deck = Deck::findOrFail($id);
+            $this->authorize('view', $deck); //Kiểm tra xem người dùng có quyền xem bộ thẻ này không (bộ thẻ của user hoặc bộ thẻ có isSuperUser=true)
+
+            $deck->load('flashcards'); //Tải các flashcards của bộ thẻ này
+
+            return response()->json([
+                'message' => 'Truy xuất bộ thẻ thành công',
+                'deck' => $deck
+            ]);
+        } catch (Exception $e) {
+            Log::error('Lỗi truy xuất bộ thẻ: ' . $e->getMessage() . ' - Line no. ' . $e->getLine());
+            return response()->json([
+                'message' => 'Lỗi truy xuất bộ thẻ: ' . $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            $deck = Deck::findOrFail($id);
+            $this->authorize('update', $deck); //Kiểm tra xem người dùng có quyền cập nhật bộ thẻ này không (bộ thẻ của user)
+
+            $deck->update($request->all());
+
+            return response()->json([
+                'message' => 'Cập nhật bộ thẻ thành công',
+                'deck' => $deck
+            ]);
+        } catch (Exception $e) {
+            Log::error('Lỗi cập nhật bộ thẻ: ' . $e->getMessage() . ' - Line no. ' . $e->getLine());
+            return response()->json([
+                'message' => 'Lỗi cập nhật bộ thẻ: ' . $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy($id)
+    {
+        try {
+            $deck = Deck::findOrFail($id);
+            $this->authorize('delete', $deck); //Kiểm tra xem người dùng có quyền xóa bộ thẻ này không (bộ thẻ của user)
+
+            $deck->delete();
+
+            return response()->json([
+                'message' => 'Xóa bộ thẻ thành công',
+                'deck' => $deck
+            ]);
+        } catch (Exception $e) {
+            Log::error('Lỗi xóa bộ thẻ: ' . $e->getMessage() . ' - Line no. ' . $e->getLine());
+            return response()->json([
+                'message' => 'Lỗi xóa bộ thẻ: ' . $e->getMessage()
+            ], 400);
+        }
+    }
+}

@@ -23,3 +23,7 @@ Route::controller(AuthController::class)->group(function () {
     Route::get('account', 'account')->middleware('auth:sanctum');
     Route::get('logout', 'logout')->middleware('auth:sanctum');
 });
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('decks', DeckController::class);
+});
