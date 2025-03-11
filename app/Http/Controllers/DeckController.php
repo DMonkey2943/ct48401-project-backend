@@ -7,9 +7,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
+use App\Traits\HandleImageTrait;
 
 class DeckController extends Controller
 {
+    use HandleImageTrait;
+
     /**
      * Display a listing of the resource.
      */
@@ -50,10 +53,16 @@ class DeckController extends Controller
     public function store(Request $request)
     {
         try {
+            $imageBgPath = null;
+            if ($request->hasFile('imageBg')) {
+                Log::info('DeckController - store() - file imageBg: ' . $request->file('imageBg'));
+                $imageBgPath = $this->uploadImage($request->file('imageBg'), 'images/decks');
+            }
+
             $deck = $request->user()->decks()->create([
                 'title' => $request->title,
                 'type' => $request->type ?? null,
-                'imageBg' => $request->imageBg ?? null,
+                'imageBg' => $imageBgPath ?? $request->imageBg ?? null,
                 'isFavorite' => $request->isFavorite ?? false,
                 'isSuperUser' => $request->isSuperUser ?? false,
             ]);
@@ -98,11 +107,28 @@ class DeckController extends Controller
      */
     public function update(Request $request, $id)
     {
+        Log::info('DeckController - update() - request: ');
+        Log::info($request->all());
+
         try {
             $deck = Deck::findOrFail($id);
             $this->authorize('update', $deck); //Kiểm tra xem người dùng có quyền cập nhật bộ thẻ này không (bộ thẻ của user)
+            
+            $data = $request->all();
 
-            $deck->update($request->all());
+            if ($request->hasFile('imageBg')) {
+                // Delete the old image if it exists
+                if ($deck->imageBg) {
+                    $this->deleteImage($deck->imageBg);
+                }
+
+                // Upload the new image
+                Log::info('DeckController - update() - file imageBg: ' . $request->file('imageBg'));
+                $imageBgPath = $this->uploadImage($request->file('imageBg'), 'images/decks');
+                $data['imageBg'] = $imageBgPath;
+            }
+
+            $deck->update($data);
 
             return response()->json([
                 'message' => 'Cập nhật bộ thẻ thành công',
@@ -124,6 +150,10 @@ class DeckController extends Controller
         try {
             $deck = Deck::findOrFail($id);
             $this->authorize('delete', $deck); //Kiểm tra xem người dùng có quyền xóa bộ thẻ này không (bộ thẻ của user)
+
+            if ($deck->imageBg) {
+                $this->deleteImage($deck->imageBg);
+            }
 
             $deck->delete();
 
