@@ -26,4 +26,10 @@ Route::controller(AuthController::class)->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('decks', DeckController::class);
+
+    Route::get('/decks/{deckId}/flashcards', [FlashcardController::class, 'index']);
+    Route::post('/decks/{deckId}/flashcards', [FlashcardController::class, 'store']);
+    Route::get('/decks/{deckId}/flashcards/{flashcardId}', [FlashcardController::class, 'show']);
+    Route::patch('/decks/{deckId}/flashcards/{flashcardId}', [FlashcardController::class, 'update']);
+    Route::delete('/decks/{deckId}/flashcards/{flashcardId}', [FlashcardController::class, 'destroy']);
 });
