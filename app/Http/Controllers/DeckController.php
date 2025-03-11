@@ -63,8 +63,8 @@ class DeckController extends Controller
                 'title' => $request->title,
                 'type' => $request->type ?? null,
                 'imageBg' => $imageBgPath ?? $request->imageBg ?? null,
-                'isFavorite' => $request->isFavorite ?? false,
-                'isSuperUser' => $request->isSuperUser ?? false,
+                'isFavorite' => $request->isFavorite ? filter_var($request->input('isFavorite'), FILTER_VALIDATE_BOOLEAN) : false, //Chuyển đổi kiểu dữ liệu của isFavorite (nếu có)
+                'isSuperUser' => $request->isSuperUser ? filter_var($request->input('isSuperUser'), FILTER_VALIDATE_BOOLEAN) : false, //Chuyển đổi kiểu dữ liệu của isSuperUser (nếu có)
             ]);
 
             return response()->json([
@@ -126,6 +126,16 @@ class DeckController extends Controller
                 Log::info('DeckController - update() - file imageBg: ' . $request->file('imageBgFile'));
                 $imageBgPath = $this->uploadImage($request->file('imageBgFile'), 'images/decks');
                 $data['imageBg'] = $imageBgPath;
+            }
+
+            // Chuyển đổi kiểu dữ liệu của isFavorite (nếu có)
+            if ($request->has('isFavorite')) {
+                $data['isFavorite'] = filter_var($request->input('isFavorite'), FILTER_VALIDATE_BOOLEAN);
+            }
+            
+            // Chuyển đổi kiểu dữ liệu của isSuperUser (nếu có)
+            if ($request->has('isSuperUser')) {
+                $data['isSuperUser'] = filter_var($request->input('isSuperUser'), FILTER_VALIDATE_BOOLEAN);
             }
 
             $deck->update($data);
