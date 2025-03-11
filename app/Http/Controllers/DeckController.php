@@ -54,9 +54,9 @@ class DeckController extends Controller
     {
         try {
             $imageBgPath = null;
-            if ($request->hasFile('imageBg')) {
-                Log::info('DeckController - store() - file imageBg: ' . $request->file('imageBg'));
-                $imageBgPath = $this->uploadImage($request->file('imageBg'), 'images/decks');
+            if ($request->hasFile('imageBgFile')) {
+                Log::info('DeckController - store() - file imageBg: ' . $request->file('imageBgFile'));
+                $imageBgPath = $this->uploadImage($request->file('imageBgFile'), 'images/decks');
             }
 
             $deck = $request->user()->decks()->create([
@@ -88,7 +88,7 @@ class DeckController extends Controller
             $deck = Deck::findOrFail($id);
             $this->authorize('view', $deck); //Kiểm tra xem người dùng có quyền xem bộ thẻ này không (bộ thẻ của user hoặc bộ thẻ có isSuperUser=true)
 
-            $deck->load('flashcards'); //Tải các flashcards của bộ thẻ này
+            // $deck->load('flashcards'); //Tải các flashcards của bộ thẻ này
 
             return response()->json([
                 'message' => 'Truy xuất bộ thẻ thành công',
@@ -116,15 +116,15 @@ class DeckController extends Controller
             
             $data = $request->all();
 
-            if ($request->hasFile('imageBg')) {
+            if ($request->hasFile('imageBgFile')) {
                 // Delete the old image if it exists
                 if ($deck->imageBg) {
                     $this->deleteImage($deck->imageBg);
                 }
 
                 // Upload the new image
-                Log::info('DeckController - update() - file imageBg: ' . $request->file('imageBg'));
-                $imageBgPath = $this->uploadImage($request->file('imageBg'), 'images/decks');
+                Log::info('DeckController - update() - file imageBg: ' . $request->file('imageBgFile'));
+                $imageBgPath = $this->uploadImage($request->file('imageBgFile'), 'images/decks');
                 $data['imageBg'] = $imageBgPath;
             }
 
@@ -159,8 +159,8 @@ class DeckController extends Controller
 
             return response()->json([
                 'message' => 'Xóa bộ thẻ thành công',
-                'deck' => $deck
-            ]);
+                // 'deck' => $deck
+            ], 200);
         } catch (Exception $e) {
             Log::error('Lỗi xóa bộ thẻ: ' . $e->getMessage() . ' - Line no. ' . $e->getLine());
             return response()->json([
